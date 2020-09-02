@@ -1,8 +1,9 @@
 # node-mongo-rest-api
 
 // https://nordicapis.com/building-a-restful-api-using-node-js-and-mongodb/
-
+sudo apt-get install npm
 npm init -y 
+
 => creates package.json
 
 touch app.js

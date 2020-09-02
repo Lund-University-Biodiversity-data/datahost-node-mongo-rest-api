@@ -58,10 +58,20 @@ app.get("/events-per-county/:county", (request, response) => {
 
 app.get("/events-multiple-params", (request, response) => {
 // ?paramA=tamere&paramB=tonpere&paramC=tonshort
-   	console.log(request.query.paramA);
-   	console.log(request.query.paramB);
-   	console.log(request.query.paramC);
-    collEvents.find().limit(10).toArray((error, result) => {
+   	console.log(request.query.startDate);
+
+    var paramRequest;
+
+    if (typeof request.query.startDate !== 'undefined' && request.query.startDate !== null){
+        paramRequest = {
+            "eventDate": { $gte : new Date( request.query.startDate + "T00:00:00.001Z") }
+        };
+
+    }
+    console.log(paramRequest);
+
+
+    collEvents.find(paramRequest).limit(10).toArray((error, result) => {
         if(error) {
             return response.status(500).send(error);
         }
