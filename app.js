@@ -5,7 +5,7 @@ const ObjectId = require("mongodb").ObjectID;
 const CONNECTION_URL = "mongodb://localhost:27017";
 const DATABASE_NAME = "dwca-datahost";
 
-const API_PORT = 5000;
+const API_PORT = 8085;
 
 var app = Express();
 app.use(BodyParser.json());
