@@ -6,6 +6,23 @@ const CONNECTION_URL = "mongodb://localhost:27017";
 const DATABASE_NAME = "dwca-datahost";
 
 const API_PORT = 8085;
+const LIMIT_MAX = 10;
+
+function createCSVExport(collObject, paramRequest, result) {
+        // retrieve all the fields name
+    var arrFields = [];
+    collObject.find(paramRequest).limit(1).toArray((error2, result2) => {
+        for (key in result2) arrFields.push(key);
+
+    });
+
+
+    var { Parser } = require('json2csv');
+    const json2csv = new Parser( { arrFields } );
+    const csv = json2csv.parse(result)
+
+    return csv
+}
 
 var app = Express();
 app.use(BodyParser.json());
@@ -20,16 +37,29 @@ app.listen(API_PORT, () => {
         }
         database = client.db(DATABASE_NAME);
         collEvents = database.collection("events");
+        collOccurences = database.collection("occurences");
         console.log("Connected to `" + DATABASE_NAME + "`!");
     });
 });
 
 app.get("/events", (request, response) => {
-    collEvents.find({}).limit(10).toArray((error, result) => {
+    collEvents.find({}).limit(LIMIT_MAX).toArray((error, result) => {
         if(error) {
             return response.status(500).send(error);
         }
-        response.send(result);	
+        
+        // check format
+        if (typeof request.query.format !== 'undefined' && request.query.format == "csv"){
+            csv = createCSVExport("", result);
+
+            response.header('Content-Type', 'text/csv');
+            response.attachment('events.csv')
+            response.status(200).send(csv)
+        }
+        else {
+            response.send(result);  
+
+        }
     });
 });
 
@@ -47,7 +77,7 @@ app.get("/events-per-county/:county", (request, response) => {
 // Västra Götalands län
 // http://localhost:5000/events-per-county/V%C3%A4stra%20G%C3%B6talands%20l%C3%A4n
    	console.log(request.params.county);
-    collEvents.find({ "county": request.params.county }).limit(10).toArray((error, result) => {
+    collEvents.find({ "county": request.params.county }).limit(LIMIT_MAX).toArray((error, result) => {
         if(error) {
             return response.status(500).send(error);
         }
@@ -58,7 +88,6 @@ app.get("/events-per-county/:county", (request, response) => {
 
 app.get("/events-multiple-params", (request, response) => {
 // ?paramA=tamere&paramB=tonpere&paramC=tonshort
-   	console.log(request.query.startDate);
 
     var paramRequest;
 
@@ -68,17 +97,79 @@ app.get("/events-multiple-params", (request, response) => {
         };
 
     }
-    console.log(paramRequest);
 
 
-    collEvents.find(paramRequest).limit(10).toArray((error, result) => {
+    collEvents.find(paramRequest).limit(LIMIT_MAX).toArray((error, result) => {
         if(error) {
             return response.status(500).send(error);
         }
-        response.send(result);	
+
+        // check format
+        if (typeof request.query.format !== 'undefined' && request.query.format == "csv"){
+            csv = createCSVExport(collEvents, paramRequest, result);
+
+            response.header('Content-Type', 'text/csv');
+            response.attachment('events-multiple-params.csv')
+            response.status(200).send(csv)
+        }
+        else {
+            response.send(result);  
+
+        }
+
+
+
     });
 });
 
+app.get("/occurences-multiple-params", (request, response) => {
+// ?paramA=tamere&paramB=tonpere&paramC=tonshort
+    console.log(request.query.startDate);
+
+    var paramRequest = {};
+
+    if (typeof request.query.scientificName !== 'undefined' && request.query.scientificName !== null){
+
+        var listSpecies = request.query.scientificName;
+        var splitSpecies = listSpecies.split(',');
+        paramRequest.scientificName = { $in : splitSpecies  };
+
+    }
+
+    if (typeof request.query.taxonID !== 'undefined' && request.query.taxonID !== null){
+
+        var splitTaxonId = request.query.taxonID.split(',').map(Number);
+        console.log(splitTaxonId);
+        paramRequest.taxonID = { $in : splitTaxonId  };
+
+    }
+
+
+    console.log(paramRequest);
+
+
+    collOccurences.find(paramRequest).limit(LIMIT_MAX).toArray((error, result) => {
+        if(error) {
+            return response.status(500).send(error);
+        }
+
+        // check format
+        if (typeof request.query.format !== 'undefined' && request.query.format == "csv"){
+            csv = createCSVExport(collOccurences, paramRequest, result);
+
+            response.header('Content-Type', 'text/csv');
+            response.attachment('occurences-multiple-params.csv')
+            response.status(200).send(csv)
+        }
+        else {
+            response.send(result);  
+
+        }
+
+
+
+    });
+});
 
 /*
 app.post("/personnel", (request, response) => {
